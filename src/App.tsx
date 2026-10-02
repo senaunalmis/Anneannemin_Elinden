@@ -8,6 +8,7 @@ import { StepIngredientsAndSteps } from './components/recipe-creation/StepIngred
 import { StepGrandpaReview } from './components/recipe-creation/StepGrandpaReview';
 import { RecipeBook } from './components/recipe-book/RecipeBook';
 import { usePWAInstall } from './hooks/usePWAInstall';
+import { FamilyPinGate } from './components/common/FamilyPinGate';
 
 export function App() {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('home');
@@ -94,7 +95,8 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fdfaf3] text-[#1f1d1a] flex flex-col font-sans selection:bg-amber-200">
+    <FamilyPinGate>
+      <div className="min-h-screen bg-[#fdfaf3] text-[#1f1d1a] flex flex-col font-sans selection:bg-amber-200">
       {/* Top Navigation Bar */}
       <Header
         currentScreen={currentScreen}
@@ -160,6 +162,7 @@ export function App() {
         ❤️ Anneannemin el emeği, İsmet dedemin göz nuruyla
       </footer>
     </div>
+    </FamilyPinGate>
   );
 }
 
