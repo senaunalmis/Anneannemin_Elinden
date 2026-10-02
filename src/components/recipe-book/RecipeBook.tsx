@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, Plus, Calendar, CheckCircle2, ChevronRight, Search } from 'lucide-react';
+import { BookOpen, Plus, Calendar, CheckCircle2, ChevronRight, Search, RotateCw } from 'lucide-react';
 import type { Recipe } from '../../types/recipe';
 import { BigButton } from '../common/BigButton';
 import { RecipeDetailModal } from './RecipeDetailModal';
@@ -8,12 +8,16 @@ interface RecipeBookProps {
   recipes: Recipe[];
   onStartNewRecipe: () => void;
   onDeleteRecipe: (id: string) => void;
+  onSyncWithCloud?: () => void;
+  isSyncing?: boolean;
 }
 
 export const RecipeBook: React.FC<RecipeBookProps> = ({
   recipes,
   onStartNewRecipe,
   onDeleteRecipe,
+  onSyncWithCloud,
+  isSyncing = false,
 }) => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,15 +43,28 @@ export const RecipeBook: React.FC<RecipeBookProps> = ({
   return (
     <div className="flex flex-col gap-6 py-2 animate-fadeIn">
       {/* Title Card */}
-      <div className="bg-amber-100 border-3 border-amber-300 rounded-3xl p-6 shadow-xs flex items-center justify-between">
+      <div className="bg-amber-100 border-3 border-amber-300 rounded-3xl p-6 shadow-xs flex items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl sm:text-3xl font-black text-stone-950">
-            TARİFLERİM
+            TARİF DEFTERİM
           </h2>
           <p className="text-stone-900 text-lg sm:text-xl font-extrabold mt-1">
             Anneannemin eliyle yazıp İsmet dedemin onayladığı tüm tarifler.
           </p>
         </div>
+
+        {onSyncWithCloud && (
+          <button
+            type="button"
+            onClick={onSyncWithCloud}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 bg-white hover:bg-stone-100 text-stone-900 border-2 border-stone-300 font-black px-3.5 py-2.5 rounded-2xl text-base shadow-xs shrink-0 active:scale-95 transition-all"
+            title="Buluttan Yeni Tarifleri Çek"
+          >
+            <RotateCw className={`w-5 h-5 ${isSyncing ? 'animate-spin text-amber-600' : 'text-stone-700'}`} />
+            <span className="hidden sm:inline">{isSyncing ? 'Eşitleniyor...' : 'Yenile'}</span>
+          </button>
+        )}
       </div>
 
       {/* New Recipe Action */}

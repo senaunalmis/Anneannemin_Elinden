@@ -13,6 +13,7 @@ import { FamilyPinGate } from './components/common/FamilyPinGate';
 export function App() {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('home');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Current active recipe creation state
   const [activeTitle, setActiveTitle] = useState('');
@@ -21,18 +22,44 @@ export function App() {
   // PWA install support
   const { canInstall, installApp } = usePWAInstall();
 
-  // Load recipes on mount & sync with Supabase if configured
+  const handleSyncWithCloud = async () => {
+    setIsSyncing(true);
+    try {
+      const cloudRecipes = await storageService.syncWithCloud();
+      if (cloudRecipes) {
+        setRecipes(cloudRecipes);
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Load recipes on mount & sync with Supabase automatically
   useEffect(() => {
     const loaded = storageService.getRecipes();
     setRecipes(loaded);
 
-    // Background sync with cloud
-    storageService.syncWithCloud().then((cloudRecipes) => {
-      if (cloudRecipes && cloudRecipes.length > 0) {
-        setRecipes(cloudRecipes);
-      }
-    });
+    // Initial sync
+    handleSyncWithCloud();
+
+    // Auto-poll cloud every 8 seconds so new recipes from other phones appear
+    const interval = setInterval(() => {
+      storageService.syncWithCloud().then((cloudRecipes) => {
+        if (cloudRecipes) {
+          setRecipes(cloudRecipes);
+        }
+      });
+    }, 8000);
+
+    return () => clearInterval(interval);
   }, []);
+
+  // When navigating to recipe-book, sync immediately
+  useEffect(() => {
+    if (currentScreen === 'recipe-book') {
+      handleSyncWithCloud();
+    }
+  }, [currentScreen]);
 
   const handleStartNewRecipe = () => {
     setActiveTitle('');
@@ -72,7 +99,7 @@ export function App() {
     setCurrentScreen('ismet-review');
   };
 
-  const handleSaveRecipeConfirmed = () => {
+  const handleSaveRecipeConfirmed = async () => {
     const newRecipe: Recipe = {
       id: 'rec-' + Date.now().toString(),
       title: activeTitle,
@@ -82,86 +109,88 @@ export function App() {
       verifiedAt: new Date().toISOString(),
     };
 
-    const updated = storageService.addRecipe(newRecipe);
+    const updated = await storageService.addRecipe(newRecipe);
     setRecipes(updated);
     setActiveTitle('');
     setActiveItems([]);
     setCurrentScreen('recipe-book');
   };
 
-  const handleDeleteSavedRecipe = (id: string) => {
-    const updated = storageService.deleteRecipe(id);
+  const handleDeleteSavedRecipe = async (id: string) => {
+    const updated = await storageService.deleteRecipe(id);
     setRecipes(updated);
   };
 
   return (
     <FamilyPinGate>
       <div className="min-h-screen bg-[#fdfaf3] text-[#1f1d1a] flex flex-col font-sans selection:bg-amber-200">
-      {/* Top Navigation Bar */}
-      <Header
-        currentScreen={currentScreen}
-        onNavigate={setCurrentScreen}
-        recipesCount={recipes.length}
-      />
+        {/* Top Navigation Bar */}
+        <Header
+          currentScreen={currentScreen}
+          onNavigate={setCurrentScreen}
+          recipesCount={recipes.length}
+        />
 
-      {/* Main Container */}
-      <main className="flex-1 w-full max-w-xl mx-auto px-4 py-4 sm:py-6 flex flex-col justify-start">
-        {currentScreen === 'home' && (
-          <HomeScreen
-            recipeCount={recipes.length}
-            onStartNewRecipe={handleStartNewRecipe}
-            onOpenRecipeBook={() => setCurrentScreen('recipe-book')}
-            canInstall={canInstall}
-            onInstallApp={installApp}
-          />
-        )}
+        {/* Main Container */}
+        <main className="flex-1 w-full max-w-xl mx-auto px-4 py-4 sm:py-6 flex flex-col justify-start">
+          {currentScreen === 'home' && (
+            <HomeScreen
+              recipeCount={recipes.length}
+              onStartNewRecipe={handleStartNewRecipe}
+              onOpenRecipeBook={() => setCurrentScreen('recipe-book')}
+              canInstall={canInstall}
+              onInstallApp={installApp}
+            />
+          )}
 
-        {currentScreen === 'create-title' && (
-          <StepDishTitle
-            initialTitle={activeTitle}
-            onNext={handleTitleConfirmed}
-            onCancel={() => setCurrentScreen('home')}
-          />
-        )}
+          {currentScreen === 'create-title' && (
+            <StepDishTitle
+              initialTitle={activeTitle}
+              onNext={handleTitleConfirmed}
+              onCancel={() => setCurrentScreen('home')}
+            />
+          )}
 
-        {currentScreen === 'create-items' && (
-          <StepIngredientsAndSteps
-            dishTitle={activeTitle}
-            items={activeItems}
-            onAddItem={handleAddItem}
-            onDeleteItem={handleDeleteActiveItem}
-            onFinishRecipe={handleFinishRecipe}
-            onBackToTitle={() => setCurrentScreen('create-title')}
-          />
-        )}
+          {currentScreen === 'create-items' && (
+            <StepIngredientsAndSteps
+              dishTitle={activeTitle}
+              items={activeItems}
+              onAddItem={handleAddItem}
+              onDeleteItem={handleDeleteActiveItem}
+              onFinishRecipe={handleFinishRecipe}
+              onBackToTitle={() => setCurrentScreen('create-title')}
+            />
+          )}
 
-        {currentScreen === 'ismet-review' && (
-          <StepGrandpaReview
-            dishTitle={activeTitle}
-            items={activeItems}
-            onSaveRecipe={handleSaveRecipeConfirmed}
-            onBackToEditing={() => setCurrentScreen('create-items')}
-            onUpdateTitle={setActiveTitle}
-            onUpdateItem={handleUpdateActiveItem}
-            onDeleteItem={handleDeleteActiveItem}
-            onAddItem={handleAddItem}
-          />
-        )}
+          {currentScreen === 'ismet-review' && (
+            <StepGrandpaReview
+              dishTitle={activeTitle}
+              items={activeItems}
+              onSaveRecipe={handleSaveRecipeConfirmed}
+              onBackToEditing={() => setCurrentScreen('create-items')}
+              onUpdateTitle={setActiveTitle}
+              onUpdateItem={handleUpdateActiveItem}
+              onDeleteItem={handleDeleteActiveItem}
+              onAddItem={handleAddItem}
+            />
+          )}
 
-        {currentScreen === 'recipe-book' && (
-          <RecipeBook
-            recipes={recipes}
-            onStartNewRecipe={handleStartNewRecipe}
-            onDeleteRecipe={handleDeleteSavedRecipe}
-          />
-        )}
-      </main>
+          {currentScreen === 'recipe-book' && (
+            <RecipeBook
+              recipes={recipes}
+              onStartNewRecipe={handleStartNewRecipe}
+              onDeleteRecipe={handleDeleteSavedRecipe}
+              onSyncWithCloud={handleSyncWithCloud}
+              isSyncing={isSyncing}
+            />
+          )}
+        </main>
 
-      {/* Warm Footer */}
-      <footer className="py-4 text-center text-sm sm:text-base font-black text-stone-700 border-t-2 border-stone-200 mt-auto">
-        ❤️ Anneannemin el emeği, İsmet dedemin göz nuruyla
-      </footer>
-    </div>
+        {/* Warm Footer */}
+        <footer className="py-4 text-center text-sm sm:text-base font-black text-stone-700 border-t-2 border-stone-200 mt-auto">
+          ❤️ Anneannemin el emeği, İsmet dedemin göz nuruyla
+        </footer>
+      </div>
     </FamilyPinGate>
   );
 }

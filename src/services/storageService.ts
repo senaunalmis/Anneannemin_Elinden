@@ -48,31 +48,33 @@ export const storageService = {
     }
   },
 
-  addRecipe(recipe: Recipe): Recipe[] {
+  async addRecipe(recipe: Recipe): Promise<Recipe[]> {
     const recipes = this.getRecipes();
     const updated = [recipe, ...recipes.filter(r => r.id !== recipe.id)];
     this.saveRecipes(updated);
 
-    // Asynchronously sync to Supabase in the background
     if (supabaseService.isConfigured()) {
-      supabaseService.saveRecipe(recipe).catch((err) => {
+      try {
+        await supabaseService.saveRecipe(recipe);
+      } catch (err) {
         console.warn('Buluta kaydedilemedi (çevrimdışı olabilir):', err);
-      });
+      }
     }
 
     return updated;
   },
 
-  deleteRecipe(id: string): Recipe[] {
+  async deleteRecipe(id: string): Promise<Recipe[]> {
     const recipes = this.getRecipes();
     const updated = recipes.filter(r => r.id !== id);
     this.saveRecipes(updated);
 
-    // Asynchronously sync deletion to Supabase
     if (supabaseService.isConfigured()) {
-      supabaseService.deleteRecipe(id).catch((err) => {
+      try {
+        await supabaseService.deleteRecipe(id);
+      } catch (err) {
         console.warn('Buluttan silinemedi:', err);
-      });
+      }
     }
 
     return updated;
@@ -82,20 +84,31 @@ export const storageService = {
     if (!supabaseService.isConfigured()) return null;
 
     try {
+      const local = this.getRecipes();
       const cloudRecipes = await supabaseService.fetchRecipes();
-      if (cloudRecipes && cloudRecipes.length > 0) {
-        // Merge cloud with local
-        const local = this.getRecipes();
-        const localMap = new Map(local.map(r => [r.id, r]));
-        cloudRecipes.forEach(r => localMap.set(r.id, r));
-        const merged = Array.from(localMap.values()).sort(
+
+      if (cloudRecipes !== null) {
+        // Push any local recipes that are missing on cloud
+        const cloudIds = new Set(cloudRecipes.map(r => r.id));
+        for (const loc of local) {
+          if (!cloudIds.has(loc.id)) {
+            await supabaseService.saveRecipe(loc);
+          }
+        }
+
+        // Merge all into local
+        const finalMap = new Map<string, Recipe>();
+        local.forEach(r => finalMap.set(r.id, r));
+        cloudRecipes.forEach(r => finalMap.set(r.id, r));
+
+        const merged = Array.from(finalMap.values()).sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         this.saveRecipes(merged);
         return merged;
       }
     } catch (e) {
-      console.warn('Bulut senkronizasyonu başarısız:', e);
+      console.warn('Bulut senkronizasyonu hatası:', e);
     }
     return null;
   },
