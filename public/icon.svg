@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Rounded App Icon Background -->
+  <rect width="512" height="512" rx="128" fill="url(#bg)" />
+
+  <!-- Inner Soft Card -->
+  <rect x="40" y="40" width="432" height="432" rx="96" fill="#fdfaf3" filter="url(#shadow)" />
+
+  <!-- Big Grandma Emoji & Cooking Pot -->
+  <text x="256" y="270" font-size="190" text-anchor="middle" dominant-baseline="middle">👵</text>
+  
+  <!-- Recipe Book / Pen Emblem at Bottom -->
+  <rect x="110" y="340" width="292" height="68" rx="34" fill="#059669" />
+  <text x="256" y="384" font-size="34" font-family="system-ui, sans-serif" font-weight="900" fill="#ffffff" text-anchor="middle">TARİF DEFTERİ</text>
+</svg>
