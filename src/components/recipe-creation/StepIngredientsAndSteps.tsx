@@ -224,7 +224,7 @@ export const StepIngredientsAndSteps: React.FC<StepIngredientsAndStepsProps> = (
             TARİF BİTTİ (İSMET'E GÖSTER) 🏁
           </BigButton>
           <div className="text-center text-stone-900 font-extrabold text-base bg-amber-50 p-2.5 rounded-xl border border-amber-200">
-            Tüm malzemeler bittiyse dedene kontrol ettirmek için yukarıdaki butona bas.
+            Tüm malzemeler bittiyse dedeme kontrol ettirmek için yukarıdaki butona bas.
           </div>
         </div>
       )}
