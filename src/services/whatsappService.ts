@@ -51,7 +51,7 @@ export const whatsappService = {
       lines.push(`${idx + 1}. ${item.text}`);
     });
 
-    lines.push(`\n_Kusura bakayın_`);
+    lines.push(`\n_Kusura bakmayın_`);
 
     lines.push(`\n❤️ _Anneannemin el emeği, İsmet dedemin göz nuruyla yazılmıştır._`);
 
