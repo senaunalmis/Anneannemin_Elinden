@@ -296,6 +296,9 @@ export const StepGrandpaReview: React.FC<StepGrandpaReviewProps> = ({
               <p className="text-stone-900 font-extrabold text-lg sm:text-xl mt-2">
                 Anneannemin ellerine sağlık, İsmet dedemin gözlerine sağlık! Tarif deftere kaydedildi.
               </p>
+              <div className="mt-3 bg-emerald-100 border-2 border-emerald-400 text-emerald-950 px-4 py-2 rounded-xl text-base font-black flex items-center justify-center gap-2">
+                <span>☁️ Buluta yüklendi ve tüm cihazlarla eşitlendi ✅</span>
+              </div>
             </div>
 
             <div className="flex flex-col gap-3 pt-2">

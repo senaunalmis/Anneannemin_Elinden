@@ -45,9 +45,15 @@ export const RecipeBook: React.FC<RecipeBookProps> = ({
       {/* Title Card */}
       <div className="bg-amber-100 border-3 border-amber-300 rounded-3xl p-6 shadow-xs flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-black text-stone-950">
-            TARİF DEFTERİM
-          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-2xl sm:text-3xl font-black text-stone-950">
+              TARİF DEFTERİM
+            </h2>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 border-2 border-emerald-400 text-emerald-950 rounded-full text-xs font-black">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
+              Bulut Bağlantısı Aktif
+            </span>
+          </div>
           <p className="text-stone-900 text-lg sm:text-xl font-extrabold mt-1">
             Anneannemin eliyle yazıp İsmet dedemin onayladığı tüm tarifler.
           </p>
