@@ -10,20 +10,23 @@ export function useSpeechRecognition(options?: UseSpeechRecognitionOptions) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isSupported, setIsSupported] = useState(true);
+  const [isSupported, setIsSupported] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
+  });
 
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const onResultRef = useRef(options?.onResult);
-  onResultRef.current = options?.onResult;
+
+  useEffect(() => {
+    onResultRef.current = options?.onResult;
+  }, [options?.onResult]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognitionAPI) {
-      setIsSupported(false);
-      return;
-    }
+    if (!SpeechRecognitionAPI) return;
 
     try {
       const recognition = new SpeechRecognitionAPI();

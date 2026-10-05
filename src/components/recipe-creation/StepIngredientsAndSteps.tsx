@@ -51,6 +51,8 @@ export const StepIngredientsAndSteps: React.FC<StepIngredientsAndStepsProps> = (
     }
   };
 
+  const [justAddedCooldown, setJustAddedCooldown] = useState(false);
+
   const handleConfirmWritten = () => {
     if (!currentText.trim()) return;
     audioFeedback.playSuccess();
@@ -58,6 +60,16 @@ export const StepIngredientsAndSteps: React.FC<StepIngredientsAndStepsProps> = (
     setCurrentText('');
     resetTranscript();
     setIsManualEditing(false);
+    // 600ms safety cooldown to prevent ghost tap-through onto the next button
+    setJustAddedCooldown(true);
+    setTimeout(() => {
+      setJustAddedCooldown(false);
+    }, 600);
+  };
+
+  const handleSafeFinish = () => {
+    if (justAddedCooldown) return;
+    onFinishRecipe();
   };
 
   return (
@@ -218,7 +230,7 @@ export const StepIngredientsAndSteps: React.FC<StepIngredientsAndStepsProps> = (
           <BigButton
             variant="secondary"
             size="huge"
-            onClick={onFinishRecipe}
+            onClick={handleSafeFinish}
             icon={<Flag className="w-9 h-9" />}
           >
             TARİF BİTTİ (İSMET'E GÖSTER) 🏁

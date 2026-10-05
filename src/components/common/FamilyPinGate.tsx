@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode, type FC } from 'react';
+import { useState, type ReactNode, type FC } from 'react';
 import { Lock, Delete } from 'lucide-react';
 import { audioFeedback } from '../../services/audioFeedback';
 
@@ -8,23 +8,16 @@ interface FamilyPinGateProps {
 
 export const FamilyPinGate: FC<FamilyPinGateProps> = ({ children }) => {
   const targetPin = (import.meta.env.VITE_FAMILY_PIN || '').trim();
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(() => {
+    if (!targetPin) return true;
+    try {
+      return localStorage.getItem('anneanne_family_pin_unlocked') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [enteredPin, setEnteredPin] = useState('');
   const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    // If no PIN is configured, allow direct access
-    if (!targetPin) {
-      setIsUnlocked(true);
-      return;
-    }
-
-    // Check if this device has already unlocked before
-    const unlocked = localStorage.getItem('anneanne_family_pin_unlocked');
-    if (unlocked === 'true') {
-      setIsUnlocked(true);
-    }
-  }, [targetPin]);
 
   const handleKeyPress = (num: string) => {
     if (enteredPin.length < 4) {

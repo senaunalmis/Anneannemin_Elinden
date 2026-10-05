@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { CheckCircle2, Edit2, Trash2, Plus, ArrowLeft, Send, BookOpen, RotateCw } from 'lucide-react';
 import type { RecipeItem, Recipe } from '../../types/recipe';
@@ -41,6 +41,18 @@ export const StepGrandpaReview: React.FC<StepGrandpaReviewProps> = ({
   const [currentRecipe, setCurrentRecipe] = useState<Recipe | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [cloudErrorMessage, setCloudErrorMessage] = useState('');
+  const [canNavigateBack, setCanNavigateBack] = useState(false);
+
+  useEffect(() => {
+    // 500ms safety guard to prevent accidental ghost taps from bouncing back
+    const timer = setTimeout(() => setCanNavigateBack(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleSafeBackToEditing = () => {
+    if (!canNavigateBack) return;
+    onBackToEditing();
+  };
 
   const handleStartEditItem = (item: RecipeItem) => {
     setEditingItemId(item.id);
@@ -302,8 +314,9 @@ export const StepGrandpaReview: React.FC<StepGrandpaReviewProps> = ({
 
         <button
           type="button"
-          onClick={onBackToEditing}
-          className="flex items-center justify-center gap-2 bg-stone-200 hover:bg-stone-300 border-2 border-stone-300 text-stone-950 font-black py-4 px-6 rounded-2xl text-lg transition-colors"
+          onClick={handleSafeBackToEditing}
+          disabled={!canNavigateBack}
+          className={`flex items-center justify-center gap-2 bg-stone-200 hover:bg-stone-300 border-2 border-stone-300 text-stone-950 font-black py-4 px-6 rounded-2xl text-lg transition-colors ${!canNavigateBack ? 'opacity-50 pointer-events-none' : ''}`}
         >
           <ArrowLeft className="w-6 h-6 text-stone-800" />
           <span>Anneannemin Yazma Ekranına Geri Dön</span>

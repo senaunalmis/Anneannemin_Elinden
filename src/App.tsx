@@ -12,7 +12,7 @@ import { FamilyPinGate } from './components/common/FamilyPinGate';
 
 export function App() {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('home');
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>(() => storageService.getRecipes());
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Current active recipe creation state
@@ -43,12 +43,8 @@ export function App() {
     }
   };
 
-  // Load recipes on mount & sync with Supabase automatically
+  // Sync with Supabase on mount and poll every 8 seconds
   useEffect(() => {
-    const loaded = storageService.getRecipes();
-    setRecipes(loaded);
-
-    // Initial sync
     handleSyncWithCloud(false);
 
     // Auto-poll cloud every 8 seconds so new recipes from other phones appear
