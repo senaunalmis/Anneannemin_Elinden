@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
-import { CheckCircle2, Edit2, Trash2, Plus, ArrowLeft, Send, BookOpen } from 'lucide-react';
+import { CheckCircle2, Edit2, Trash2, Plus, ArrowLeft, Send, BookOpen, RotateCw } from 'lucide-react';
 import type { RecipeItem, Recipe } from '../../types/recipe';
 import { BigButton } from '../common/BigButton';
 import { audioFeedback } from '../../services/audioFeedback';
@@ -10,7 +10,7 @@ import { WhatsAppShareModal } from '../common/WhatsAppShareModal';
 interface StepGrandpaReviewProps {
   dishTitle: string;
   items: RecipeItem[];
-  onSaveRecipe: (recipe: Recipe) => Promise<void>;
+  onSaveRecipe: (recipe: Recipe) => Promise<{ success: boolean; error?: string }>;
   onFinishAndGoToBook: () => void;
   onBackToEditing: () => void;
   onUpdateTitle: (title: string) => void;
@@ -39,6 +39,8 @@ export const StepGrandpaReview: React.FC<StepGrandpaReviewProps> = ({
   const [isApproved, setIsApproved] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentRecipe, setCurrentRecipe] = useState<Recipe | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [cloudErrorMessage, setCloudErrorMessage] = useState('');
 
   const handleStartEditItem = (item: RecipeItem) => {
     setEditingItemId(item.id);
@@ -79,6 +81,7 @@ export const StepGrandpaReview: React.FC<StepGrandpaReviewProps> = ({
 
     setCurrentRecipe(finalRecipe);
     setIsApproved(true);
+    setSaveStatus('saving');
     audioFeedback.playCelebration();
 
     // Trigger lovely confetti
@@ -90,9 +93,33 @@ export const StepGrandpaReview: React.FC<StepGrandpaReviewProps> = ({
 
     // IMMEDIATELY SAVE TO SUPABASE AND LOCALSTORAGE
     try {
-      await onSaveRecipe(finalRecipe);
-    } catch (e) {
-      console.error('Kayıt hatası:', e);
+      const res = await onSaveRecipe(finalRecipe);
+      if (res.success) {
+        setSaveStatus('success');
+      } else {
+        setSaveStatus('error');
+        setCloudErrorMessage(res.error || 'Bulut bağlantısı kurulamadı');
+      }
+    } catch (e: any) {
+      setSaveStatus('error');
+      setCloudErrorMessage(e?.message || 'Kayıt sırasında hata oluştu');
+    }
+  };
+
+  const handleRetryCloudSave = async () => {
+    if (!currentRecipe) return;
+    setSaveStatus('saving');
+    try {
+      const res = await onSaveRecipe(currentRecipe);
+      if (res.success) {
+        setSaveStatus('success');
+      } else {
+        setSaveStatus('error');
+        setCloudErrorMessage(res.error || 'Bulut bağlantısı kurulamadı');
+      }
+    } catch (e: any) {
+      setSaveStatus('error');
+      setCloudErrorMessage(e?.message || 'Hata oluştu');
     }
   };
 
@@ -296,9 +323,37 @@ export const StepGrandpaReview: React.FC<StepGrandpaReviewProps> = ({
               <p className="text-stone-900 font-extrabold text-lg sm:text-xl mt-2">
                 Anneannemin ellerine sağlık, İsmet dedemin gözlerine sağlık! Tarif deftere kaydedildi.
               </p>
-              <div className="mt-3 bg-emerald-100 border-2 border-emerald-400 text-emerald-950 px-4 py-2 rounded-xl text-base font-black flex items-center justify-center gap-2">
-                <span>☁️ Buluta yüklendi ve tüm cihazlarla eşitlendi ✅</span>
-              </div>
+              {saveStatus === 'saving' && (
+                <div className="mt-3 bg-amber-100 border-2 border-amber-400 text-amber-950 px-4 py-3 rounded-2xl text-base font-black flex items-center justify-center gap-2">
+                  <RotateCw className="w-5 h-5 animate-spin text-amber-700" />
+                  <span>Buluta yükleniyor, lütfen bekleyin...</span>
+                </div>
+              )}
+
+              {saveStatus === 'success' && (
+                <div className="mt-3 bg-emerald-100 border-2 border-emerald-400 text-emerald-950 px-4 py-3 rounded-2xl text-base font-black flex items-center justify-center gap-2 animate-fadeIn">
+                  <span>☁️ Buluta başarıyla yüklendi ve tüm cihazlarla eşitlendi! ✅</span>
+                </div>
+              )}
+
+              {saveStatus === 'error' && (
+                <div className="mt-3 bg-rose-100 border-2 border-rose-400 text-rose-950 p-4 rounded-2xl text-left flex flex-col gap-2 animate-fadeIn">
+                  <div className="font-black text-base flex items-center gap-2">
+                    <span>⚠️ Tarif telefona yazıldı fakat buluta aktarılamadı:</span>
+                  </div>
+                  <p className="text-xs sm:text-sm font-extrabold text-rose-900 bg-white/80 p-2.5 rounded-xl break-all">
+                    {cloudErrorMessage}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleRetryCloudSave}
+                    className="mt-1 bg-rose-600 hover:bg-rose-700 text-white font-black py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-2 active:scale-95 shadow-xs"
+                  >
+                    <RotateCw className="w-4 h-4" />
+                    <span>Buluta Yüklemeyi Tekrar Dene</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-3 pt-2">

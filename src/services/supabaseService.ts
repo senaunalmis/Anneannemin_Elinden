@@ -1,77 +1,132 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Recipe } from '../types/recipe';
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+const rawUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
+const rawKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
 
-let supabaseClient: SupabaseClient | null = null;
+// Remove any trailing slash
+const supabaseUrl = rawUrl.replace(/\/+$/, '');
+const supabaseAnonKey = rawKey;
 
-if (supabaseUrl && supabaseAnonKey) {
-  try {
-    supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-  } catch (err) {
-    console.warn('Supabase başlatılamadı:', err);
-  }
-}
+let lastError: string | null = null;
 
 export const supabaseService = {
   isConfigured(): boolean {
-    return Boolean(supabaseClient && supabaseUrl && supabaseAnonKey);
+    return Boolean(supabaseUrl && supabaseAnonKey);
+  },
+
+  getLastError(): string | null {
+    return lastError;
+  },
+
+  getConfigDebug(): { urlSet: boolean; keySet: boolean; domain: string } {
+    let domain = 'yok';
+    if (supabaseUrl) {
+      try {
+        domain = new URL(supabaseUrl).hostname;
+      } catch {
+        domain = 'gecersiz-url';
+      }
+    }
+    return {
+      urlSet: Boolean(supabaseUrl),
+      keySet: Boolean(supabaseAnonKey),
+      domain,
+    };
   },
 
   async fetchRecipes(): Promise<Recipe[] | null> {
-    if (!supabaseClient) return null;
-    try {
-      const { data, error } = await supabaseClient
-        .from('recipes')
-        .select('*')
-        .order('createdAt', { ascending: false });
+    if (!this.isConfigured()) {
+      lastError = 'Supabase URL veya Anon Key ayarlı değil (.env / Vercel)';
+      return null;
+    }
 
-      if (error) {
-        console.warn('Supabase veri çekme hatası:', error.message);
+    try {
+      const endpoint = `${supabaseUrl}/rest/v1/recipes?select=*&order=createdAt.desc`;
+      const res = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`,
+        },
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        lastError = `Sunucu Hatası (${res.status}): ${errorText || res.statusText}`;
+        console.error('Supabase fetch hatası:', lastError);
         return null;
       }
 
+      const data = await res.json();
+      lastError = null;
       return data as Recipe[];
-    } catch (e) {
-      console.warn('Supabase bağlantı hatası:', e);
+    } catch (e: any) {
+      lastError = e?.message || 'İnternet bağlantı hatası';
+      console.error('Supabase bağlantı hatası:', e);
       return null;
     }
   },
 
-  async saveRecipe(recipe: Recipe): Promise<boolean> {
-    if (!supabaseClient) return false;
-    try {
-      const { error } = await supabaseClient
-        .from('recipes')
-        .upsert(recipe);
+  async saveRecipe(recipe: Recipe): Promise<{ success: boolean; error?: string }> {
+    if (!this.isConfigured()) {
+      const err = 'Supabase ayarları eksik (VITE_SUPABASE_URL veya ANON_KEY yok)';
+      lastError = err;
+      return { success: false, error: err };
+    }
 
-      if (error) {
-        console.warn('Supabase kaydetme hatası:', error.message);
-        return false;
+    try {
+      const endpoint = `${supabaseUrl}/rest/v1/recipes`;
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates',
+        },
+        body: JSON.stringify(recipe),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        const err = `Sunucu Hatası (${res.status}): ${errText || res.statusText}`;
+        lastError = err;
+        console.error('Supabase save hatası:', err);
+        return { success: false, error: err };
       }
-      return true;
-    } catch (e) {
-      console.warn('Supabase kaydetme hatası:', e);
-      return false;
+
+      lastError = null;
+      return { success: true };
+    } catch (e: any) {
+      const err = e?.message || 'İnternet bağlantı hatası';
+      lastError = err;
+      console.error('Supabase save hatası:', e);
+      return { success: false, error: err };
     }
   },
 
   async deleteRecipe(id: string): Promise<boolean> {
-    if (!supabaseClient) return false;
-    try {
-      const { error } = await supabaseClient
-        .from('recipes')
-        .delete()
-        .eq('id', id);
+    if (!this.isConfigured()) return false;
 
-      if (error) {
-        console.warn('Supabase silme hatası:', error.message);
+    try {
+      const endpoint = `${supabaseUrl}/rest/v1/recipes?id=eq.${encodeURIComponent(id)}`;
+      const res = await fetch(endpoint, {
+        method: 'DELETE',
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`,
+        },
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('Supabase silme hatası:', res.status, errText);
         return false;
       }
+
       return true;
     } catch (e) {
-      console.warn('Supabase silme hatası:', e);
+      console.error('Supabase silme hatası:', e);
       return false;
     }
   },

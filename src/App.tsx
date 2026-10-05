@@ -21,13 +21,22 @@ export function App() {
 
   // PWA install support
   const { canInstall, installApp } = usePWAInstall();
+  const [cloudError, setCloudError] = useState<string | null>(null);
 
-  const handleSyncWithCloud = async () => {
+  const handleSyncWithCloud = async (isManual = false) => {
     setIsSyncing(true);
     try {
-      const cloudRecipes = await storageService.syncWithCloud();
-      if (cloudRecipes) {
-        setRecipes(cloudRecipes);
+      const res = await storageService.syncWithCloud();
+      if (res) {
+        setRecipes(res.recipes);
+        setCloudError(res.error || null);
+        if (isManual) {
+          if (res.error) {
+            alert(`Bulut Eşitleme Uyarısı: ${res.error}`);
+          } else {
+            alert(`✅ Buluttan ${res.recipes.length} tarif başarıyla eşitlendi!`);
+          }
+        }
       }
     } finally {
       setIsSyncing(false);
@@ -40,13 +49,14 @@ export function App() {
     setRecipes(loaded);
 
     // Initial sync
-    handleSyncWithCloud();
+    handleSyncWithCloud(false);
 
     // Auto-poll cloud every 8 seconds so new recipes from other phones appear
     const interval = setInterval(() => {
-      storageService.syncWithCloud().then((cloudRecipes) => {
-        if (cloudRecipes) {
-          setRecipes(cloudRecipes);
+      storageService.syncWithCloud().then((res) => {
+        if (res) {
+          setRecipes(res.recipes);
+          setCloudError(res.error || null);
         }
       });
     }, 8000);
@@ -57,7 +67,7 @@ export function App() {
   // When navigating to recipe-book, sync immediately
   useEffect(() => {
     if (currentScreen === 'recipe-book') {
-      handleSyncWithCloud();
+      handleSyncWithCloud(false);
     }
   }, [currentScreen]);
 
@@ -99,9 +109,15 @@ export function App() {
     setCurrentScreen('ismet-review');
   };
 
-  const handleSaveRecipeConfirmed = async (newRecipe: Recipe) => {
-    const updated = await storageService.addRecipe(newRecipe);
+  const handleSaveRecipeConfirmed = async (newRecipe: Recipe): Promise<{ success: boolean; error?: string }> => {
+    const { updated, cloudResult } = await storageService.addRecipe(newRecipe);
     setRecipes(updated);
+    if (!cloudResult.success) {
+      setCloudError(cloudResult.error || 'Buluta kaydedilemedi');
+    } else {
+      setCloudError(null);
+    }
+    return cloudResult;
   };
 
   const handleFinishAndGoToBook = () => {
@@ -175,8 +191,9 @@ export function App() {
               recipes={recipes}
               onStartNewRecipe={handleStartNewRecipe}
               onDeleteRecipe={handleDeleteSavedRecipe}
-              onSyncWithCloud={handleSyncWithCloud}
+              onSyncWithCloud={() => handleSyncWithCloud(true)}
               isSyncing={isSyncing}
+              cloudError={cloudError}
             />
           )}
         </main>

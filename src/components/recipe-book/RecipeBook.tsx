@@ -10,6 +10,7 @@ interface RecipeBookProps {
   onDeleteRecipe: (id: string) => void;
   onSyncWithCloud?: () => void;
   isSyncing?: boolean;
+  cloudError?: string | null;
 }
 
 export const RecipeBook: React.FC<RecipeBookProps> = ({
@@ -18,6 +19,7 @@ export const RecipeBook: React.FC<RecipeBookProps> = ({
   onDeleteRecipe,
   onSyncWithCloud,
   isSyncing = false,
+  cloudError = null,
 }) => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,10 +51,17 @@ export const RecipeBook: React.FC<RecipeBookProps> = ({
             <h2 className="text-2xl sm:text-3xl font-black text-stone-950">
               TARİF DEFTERİM
             </h2>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 border-2 border-emerald-400 text-emerald-950 rounded-full text-xs font-black">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
-              Bulut Bağlantısı Aktif
-            </span>
+            {cloudError ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-100 border-2 border-rose-400 text-rose-950 rounded-full text-xs font-black">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-600"></span>
+                Bulut Hatası
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 border-2 border-emerald-400 text-emerald-950 rounded-full text-xs font-black">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                Bulut Bağlantısı Aktif
+              </span>
+            )}
           </div>
           <p className="text-stone-900 text-lg sm:text-xl font-extrabold mt-1">
             Anneannemin eliyle yazıp İsmet dedemin onayladığı tüm tarifler.
@@ -72,6 +81,29 @@ export const RecipeBook: React.FC<RecipeBookProps> = ({
           </button>
         )}
       </div>
+
+      {cloudError && (
+        <div className="bg-rose-50 border-3 border-rose-300 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-rose-950 animate-fadeIn">
+          <div>
+            <p className="font-black text-base flex items-center gap-2">
+              <span>⚠️ Bulut Senkronizasyon Uyarısı:</span>
+            </p>
+            <p className="text-xs sm:text-sm font-extrabold text-rose-900 mt-1 break-all">
+              {cloudError}
+            </p>
+          </div>
+          {onSyncWithCloud && (
+            <button
+              type="button"
+              onClick={onSyncWithCloud}
+              disabled={isSyncing}
+              className="shrink-0 bg-rose-600 hover:bg-rose-700 text-white font-black px-4 py-2 rounded-xl text-sm active:scale-95 transition-all shadow-xs"
+            >
+              Tekrar Dene 🔄
+            </button>
+          )}
+        </div>
+      )}
 
       {/* New Recipe Action */}
       <BigButton
