@@ -48,6 +48,8 @@ export const StepDishTitle: React.FC<StepDishTitleProps> = ({
   const handleConfirm = () => {
     if (!title.trim()) return;
     audioFeedback.playSuccess();
+    stopListening();
+    resetTranscript();
     onNext(toTurkishUpper(title));
   };
 

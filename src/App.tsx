@@ -79,12 +79,22 @@ export function App() {
   };
 
   const handleAddItem = (text: string) => {
-    const newItem: RecipeItem = {
-      id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
-      text,
-      timestamp: Date.now(),
-    };
-    setActiveItems((prev) => [...prev, newItem]);
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    setActiveItems((prev) => {
+      // Guard: Do not add identical item if it was added less than 1.5s ago
+      const lastItem = prev[prev.length - 1];
+      if (lastItem && lastItem.text === trimmed && Date.now() - lastItem.timestamp < 1500) {
+        return prev;
+      }
+      const newItem: RecipeItem = {
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+        text: trimmed,
+        timestamp: Date.now(),
+      };
+      return [...prev, newItem];
+    });
   };
 
   const handleDeleteActiveItem = (id: string) => {

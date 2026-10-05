@@ -55,10 +55,12 @@ export const StepIngredientsAndSteps: React.FC<StepIngredientsAndStepsProps> = (
 
   const handleConfirmWritten = () => {
     if (!currentText.trim()) return;
+    const textToAdd = toTurkishUpper(currentText);
     audioFeedback.playSuccess();
-    onAddItem(toTurkishUpper(currentText));
-    setCurrentText('');
+    onAddItem(textToAdd);
+    stopListening();
     resetTranscript();
+    setCurrentText('');
     setIsManualEditing(false);
     // 600ms safety cooldown to prevent ghost tap-through onto the next button
     setJustAddedCooldown(true);

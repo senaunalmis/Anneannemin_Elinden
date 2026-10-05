@@ -123,19 +123,31 @@ export function useSpeechRecognition(options?: UseSpeechRecognitionOptions) {
   }, []);
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current && isListening) {
+    if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
       } catch {
-        recognitionRef.current.abort();
+        try {
+          recognitionRef.current.abort();
+        } catch {
+          // Ignore
+        }
       }
     }
     setIsListening(false);
-  }, [isListening]);
+  }, []);
 
   const resetTranscript = useCallback(() => {
     setTranscript('');
     setError(null);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {
+        // Ignore
+      }
+    }
+    setIsListening(false);
   }, []);
 
   const setManualText = useCallback((text: string) => {
