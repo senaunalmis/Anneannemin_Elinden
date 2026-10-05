@@ -10,7 +10,8 @@ import { WhatsAppShareModal } from '../common/WhatsAppShareModal';
 interface StepGrandpaReviewProps {
   dishTitle: string;
   items: RecipeItem[];
-  onSaveRecipe: () => void;
+  onSaveRecipe: (recipe: Recipe) => Promise<void>;
+  onFinishAndGoToBook: () => void;
   onBackToEditing: () => void;
   onUpdateTitle: (title: string) => void;
   onUpdateItem: (id: string, newText: string) => void;
@@ -22,6 +23,7 @@ export const StepGrandpaReview: React.FC<StepGrandpaReviewProps> = ({
   dishTitle,
   items,
   onSaveRecipe,
+  onFinishAndGoToBook,
   onBackToEditing,
   onUpdateTitle,
   onUpdateItem,
@@ -36,6 +38,7 @@ export const StepGrandpaReview: React.FC<StepGrandpaReviewProps> = ({
   const [newItemText, setNewItemText] = useState('');
   const [isApproved, setIsApproved] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [currentRecipe, setCurrentRecipe] = useState<Recipe | null>(null);
 
   const handleStartEditItem = (item: RecipeItem) => {
     setEditingItemId(item.id);
@@ -64,7 +67,17 @@ export const StepGrandpaReview: React.FC<StepGrandpaReviewProps> = ({
     }
   };
 
-  const handleGrandpaApprove = () => {
+  const handleGrandpaApprove = async () => {
+    const finalRecipe: Recipe = {
+      id: 'rec-' + Date.now().toString(),
+      title: dishTitle,
+      items,
+      createdAt: new Date().toISOString(),
+      verifiedByIsmet: true,
+      verifiedAt: new Date().toISOString(),
+    };
+
+    setCurrentRecipe(finalRecipe);
     setIsApproved(true);
     audioFeedback.playCelebration();
 
@@ -74,14 +87,13 @@ export const StepGrandpaReview: React.FC<StepGrandpaReviewProps> = ({
       spread: 90,
       origin: { y: 0.6 },
     });
-  };
 
-  const currentRecipeObject: Recipe = {
-    id: 'temp-' + Date.now(),
-    title: dishTitle,
-    items,
-    createdAt: new Date().toISOString(),
-    verifiedByIsmet: true,
+    // IMMEDIATELY SAVE TO SUPABASE AND LOCALSTORAGE
+    try {
+      await onSaveRecipe(finalRecipe);
+    } catch (e) {
+      console.error('Kayıt hatası:', e);
+    }
   };
 
   return (
@@ -298,7 +310,7 @@ export const StepGrandpaReview: React.FC<StepGrandpaReviewProps> = ({
 
               <button
                 type="button"
-                onClick={onSaveRecipe}
+                onClick={onFinishAndGoToBook}
                 className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black text-xl py-4 px-6 rounded-2xl flex items-center justify-center gap-3 shadow-md active:scale-98 transition-all border-b-4 border-amber-700"
               >
                 <BookOpen className="w-7 h-7" />
@@ -309,12 +321,12 @@ export const StepGrandpaReview: React.FC<StepGrandpaReviewProps> = ({
         </div>
       )}
 
-      {showShareModal && (
+      {showShareModal && currentRecipe && (
         <WhatsAppShareModal
-          recipe={currentRecipeObject}
+          recipe={currentRecipe}
           onClose={() => {
             setShowShareModal(false);
-            onSaveRecipe();
+            onFinishAndGoToBook();
           }}
         />
       )}

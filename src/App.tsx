@@ -99,18 +99,12 @@ export function App() {
     setCurrentScreen('ismet-review');
   };
 
-  const handleSaveRecipeConfirmed = async () => {
-    const newRecipe: Recipe = {
-      id: 'rec-' + Date.now().toString(),
-      title: activeTitle,
-      items: activeItems,
-      createdAt: new Date().toISOString(),
-      verifiedByIsmet: true,
-      verifiedAt: new Date().toISOString(),
-    };
-
+  const handleSaveRecipeConfirmed = async (newRecipe: Recipe) => {
     const updated = await storageService.addRecipe(newRecipe);
     setRecipes(updated);
+  };
+
+  const handleFinishAndGoToBook = () => {
     setActiveTitle('');
     setActiveItems([]);
     setCurrentScreen('recipe-book');
@@ -167,6 +161,7 @@ export function App() {
               dishTitle={activeTitle}
               items={activeItems}
               onSaveRecipe={handleSaveRecipeConfirmed}
+              onFinishAndGoToBook={handleFinishAndGoToBook}
               onBackToEditing={() => setCurrentScreen('create-items')}
               onUpdateTitle={setActiveTitle}
               onUpdateItem={handleUpdateActiveItem}
